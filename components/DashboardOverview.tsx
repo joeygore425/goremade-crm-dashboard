@@ -15,7 +15,7 @@ interface Stats {
 }
 
 export default function DashboardOverview() {
-  const [stats, setStats] = useState<Stats>({
+  const [stats] = useState<Stats>({
     trainersOnboarded: 0,
     trainerProspects: 50,
     clientsActive: 8,
