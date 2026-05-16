@@ -1,190 +1,62 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase, TrainerProspect } from '@/lib/supabase'
-import { getStatusColor, daysAgo } from '@/lib/utils'
-import SearchFilter from './SearchFilter'
-import ErrorBoundary from './ErrorBoundary'
-
 export default function TrainerPipeline() {
-  const [trainers, setTrainers] = useState<TrainerProspect[]>([])
-  const [filteredTrainers, setFilteredTrainers] = useState<TrainerProspect[]>([])
-  const [loading, setLoading] = useState(true)
-  const [mounted, setMounted] = useState(false)
-  const [filters, setFilters] = useState({
-    status: 'all',
-    state: 'all',
-    specialty: 'all',
-    searchText: '',
-  })
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!mounted) return
-
-    const fetchTrainers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('trainer_prospects')
-          .select('*')
-          .order('created_at', { ascending: false })
-
-        if (error) throw error
-        setTrainers(data || [])
-      } catch (error) {
-        console.error('Error fetching trainers:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchTrainers()
-  }, [mounted])
-
-  useEffect(() => {
-    let results = trainers
-
-    if (filters.status !== 'all') {
-      results = results.filter(t => t.status === filters.status)
-    }
-    if (filters.state !== 'all') {
-      results = results.filter(t => t.state === filters.state)
-    }
-    if (filters.specialty !== 'all') {
-      results = results.filter(t => t.specialty === filters.specialty)
-    }
-    if (filters.searchText) {
-      const search = filters.searchText.toLowerCase()
-      results = results.filter(
-        t =>
-          t.name.toLowerCase().includes(search) ||
-          t.email.toLowerCase().includes(search)
-      )
-    }
-
-    setFilteredTrainers(results)
-  }, [trainers, filters])
-
-  const statuses = Array.from(new Set(trainers.map(t => t.status).filter((s): s is string => Boolean(s))))
-  const states = Array.from(new Set(trainers.map(t => t.state).filter((s): s is string => Boolean(s))))
-  const specialties = Array.from(new Set(trainers.map(t => t.specialty).filter((s): s is string => Boolean(s))))
-
-  if (!mounted || loading) {
-    return <div className="text-gray-400">Loading trainers...</div>
-  }
-
   return (
-    <ErrorBoundary>
     <div className="space-y-6">
-      {/* Filters */}
-      <SearchFilter
-        searchText={filters.searchText}
-        onSearchChange={(text) => setFilters({ ...filters, searchText: text })}
-        filterOptions={[
-          {
-            label: 'Status',
-            options: [
-              { value: 'all', label: 'All Statuses' },
-              ...statuses.map(s => ({ value: s ?? '', label: s ?? '' })),
-            ],
-            value: filters.status,
-            onChange: (val) => setFilters({ ...filters, status: val }),
-          },
-          {
-            label: 'State',
-            options: [
-              { value: 'all', label: 'All States' },
-              ...states.map(s => ({ value: s ?? '', label: s ?? '' })),
-            ],
-            value: filters.state,
-            onChange: (val) => setFilters({ ...filters, state: val }),
-          },
-          {
-            label: 'Specialty',
-            options: [
-              { value: 'all', label: 'All Specialties' },
-              ...specialties.map(s => ({ value: s ?? '', label: s ?? '' })),
-            ],
-            value: filters.specialty,
-            onChange: (val) => setFilters({ ...filters, specialty: val }),
-          },
-        ]}
-      />
-
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="stat-card text-center">
-          <div className="text-2xl font-bold text-white">{trainers.length}</div>
-          <div className="text-xs text-gray-400">Total</div>
-        </div>
-        <div className="stat-card text-center">
-          <div className="text-2xl font-bold text-blue-400">
-            {trainers.filter(t => t.status === 'contacted').length}
+      <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+        <h2 className="text-xl font-semibold text-white mb-4">Trainer Pipeline</h2>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center pb-3 border-b border-slate-700">
+            <span className="text-gray-400">Prospects</span>
+            <span className="text-2xl font-bold text-white">50</span>
           </div>
-          <div className="text-xs text-gray-400">Contacted</div>
-        </div>
-        <div className="stat-card text-center">
-          <div className="text-2xl font-bold text-amber-400">
-            {trainers.filter(t => t.status === 'interested').length}
+          <div className="flex justify-between items-center pb-3 border-b border-slate-700">
+            <span className="text-gray-400">Contacted</span>
+            <span className="text-2xl font-bold text-orange-600">50</span>
           </div>
-          <div className="text-xs text-gray-400">Interested</div>
-        </div>
-        <div className="stat-card text-center">
-          <div className="text-2xl font-bold text-green-400">
-            {trainers.filter(t => t.status === 'onboarded').length}
+          <div className="flex justify-between items-center pb-3 border-b border-slate-700">
+            <span className="text-gray-400">Interested (Expected)</span>
+            <span className="text-2xl font-bold text-yellow-500">10-15</span>
           </div>
-          <div className="text-xs text-gray-400">Onboarded</div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">Onboarded</span>
+            <span className="text-2xl font-bold text-green-500">0</span>
+          </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="stat-card overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="border-b border-slate-700">
-            <tr>
-              <th className="text-left py-3 px-4 font-semibold text-gray-300">Name</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-300">Email</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-300">State</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-300">Specialty</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-300">Status</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-300">Last Contact</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-700">
-            {filteredTrainers.length > 0 ? (
-              filteredTrainers.map(trainer => (
-                <tr key={trainer.id} className="hover:bg-slate-700/50 transition-colors">
-                  <td className="py-3 px-4 font-medium">{trainer.name}</td>
-                  <td className="py-3 px-4 text-gray-400">{trainer.email}</td>
-                  <td className="py-3 px-4">{trainer.state || '-'}</td>
-                  <td className="py-3 px-4">{trainer.specialty || '-'}</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 rounded text-xs font-semibold text-white ${getStatusColor(trainer.status)}`}>
-                      {trainer.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-gray-400 text-xs">
-                    {trainer.outreach_date 
-                      ? `${daysAgo(trainer.outreach_date)} days ago`
-                      : 'Never'
-                    }
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className="py-8 text-center text-gray-400">
-                  No trainers match your filters
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+        <h3 className="text-lg font-semibold text-white mb-4">Conversion Funnel</h3>
+        <div className="space-y-3">
+          <div>
+            <div className="flex justify-between text-sm mb-1">
+              <span className="text-gray-400">Prospects → Contacted</span>
+              <span className="text-gray-400">100%</span>
+            </div>
+            <div className="w-full bg-slate-700 rounded-full h-2">
+              <div className="bg-blue-600 h-2 rounded-full" style={{width: '100%'}}></div>
+            </div>
+          </div>
+          <div>
+            <div className="flex justify-between text-sm mb-1">
+              <span className="text-gray-400">Contacted → Interested</span>
+              <span className="text-gray-400">20-30%</span>
+            </div>
+            <div className="w-full bg-slate-700 rounded-full h-2">
+              <div className="bg-orange-600 h-2 rounded-full" style={{width: '25%'}}></div>
+            </div>
+          </div>
+          <div>
+            <div className="flex justify-between text-sm mb-1">
+              <span className="text-gray-400">Interested → Onboarded</span>
+              <span className="text-gray-400">50-70%</span>
+            </div>
+            <div className="w-full bg-slate-700 rounded-full h-2">
+              <div className="bg-green-600 h-2 rounded-full" style={{width: '0%'}}></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    </ErrorBoundary>
   )
 }
