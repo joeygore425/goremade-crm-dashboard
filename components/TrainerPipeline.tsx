@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase, TrainerProspect } from '@/lib/supabase'
-import { formatDate, getStatusColor, daysAgo } from '@/lib/utils'
+import { getStatusColor, daysAgo } from '@/lib/utils'
 import SearchFilter from './SearchFilter'
 
 export default function TrainerPipeline() {
@@ -60,9 +60,9 @@ export default function TrainerPipeline() {
     setFilteredTrainers(results)
   }, [trainers, filters])
 
-  const statuses = Array.from(new Set(trainers.map(t => t.status)))
-  const states = Array.from(new Set(trainers.map(t => t.state).filter(Boolean)))
-  const specialties = Array.from(new Set(trainers.map(t => t.specialty).filter(Boolean)))
+  const statuses = Array.from(new Set(trainers.map(t => t.status).filter((s): s is string => Boolean(s))))
+  const states = Array.from(new Set(trainers.map(t => t.state).filter((s): s is string => Boolean(s))))
+  const specialties = Array.from(new Set(trainers.map(t => t.specialty).filter((s): s is string => Boolean(s))))
 
   if (loading) {
     return <div className="text-gray-400">Loading trainers...</div>
@@ -79,7 +79,7 @@ export default function TrainerPipeline() {
             label: 'Status',
             options: [
               { value: 'all', label: 'All Statuses' },
-              ...statuses.map(s => ({ value: s, label: s })),
+              ...statuses.map(s => ({ value: s ?? '', label: s ?? '' })),
             ],
             value: filters.status,
             onChange: (val) => setFilters({ ...filters, status: val }),
@@ -88,7 +88,7 @@ export default function TrainerPipeline() {
             label: 'State',
             options: [
               { value: 'all', label: 'All States' },
-              ...states.map(s => ({ value: s, label: s })),
+              ...states.map(s => ({ value: s ?? '', label: s ?? '' })),
             ],
             value: filters.state,
             onChange: (val) => setFilters({ ...filters, state: val }),
@@ -97,7 +97,7 @@ export default function TrainerPipeline() {
             label: 'Specialty',
             options: [
               { value: 'all', label: 'All Specialties' },
-              ...specialties.map(s => ({ value: s, label: s })),
+              ...specialties.map(s => ({ value: s ?? '', label: s ?? '' })),
             ],
             value: filters.specialty,
             onChange: (val) => setFilters({ ...filters, specialty: val }),

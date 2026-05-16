@@ -19,7 +19,7 @@ export default function Dashboard() {
     // Check Supabase connection
     const checkConnection = async () => {
       try {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('trainer_prospects')
           .select('count')
           .limit(1)

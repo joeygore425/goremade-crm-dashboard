@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase, ClientProspect } from '@/lib/supabase'
-import { formatDate, getStatusColor, daysAgo } from '@/lib/utils'
+import { getStatusColor, daysAgo } from '@/lib/utils'
 import SearchFilter from './SearchFilter'
 
 export default function ClientPipeline() {
@@ -57,8 +57,8 @@ export default function ClientPipeline() {
     setFilteredClients(results)
   }, [clients, filters])
 
-  const statuses = Array.from(new Set(clients.map(c => c.status)))
-  const industries = Array.from(new Set(clients.map(c => c.industry).filter(Boolean)))
+  const statuses = Array.from(new Set(clients.map(c => c.status).filter((s): s is string => Boolean(s))))
+  const industries = Array.from(new Set(clients.map(c => c.industry).filter((i): i is string => Boolean(i))))
 
   if (loading) {
     return <div className="text-gray-400">Loading clients...</div>
@@ -75,7 +75,7 @@ export default function ClientPipeline() {
             label: 'Status',
             options: [
               { value: 'all', label: 'All Statuses' },
-              ...statuses.map(s => ({ value: s, label: s })),
+              ...statuses.map(s => ({ value: s ?? '', label: s ?? '' })),
             ],
             value: filters.status,
             onChange: (val) => setFilters({ ...filters, status: val }),
@@ -84,7 +84,7 @@ export default function ClientPipeline() {
             label: 'Industry',
             options: [
               { value: 'all', label: 'All Industries' },
-              ...industries.map(i => ({ value: i, label: i })),
+              ...industries.map(i => ({ value: i ?? '', label: i ?? '' })),
             ],
             value: filters.industry,
             onChange: (val) => setFilters({ ...filters, industry: val }),
