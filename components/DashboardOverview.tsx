@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import StatCard from './StatCard'
 import FunnelChart from './FunnelChart'
+import ErrorBoundary from './ErrorBoundary'
 
 interface Stats {
   trainersOnboarded: number
@@ -29,8 +30,15 @@ export default function DashboardOverview() {
     tokenUsageThisMonth: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     const fetchStats = async () => {
       try {
         // Fetch trainer stats
@@ -84,13 +92,14 @@ export default function DashboardOverview() {
     }
 
     fetchStats()
-  }, [])
+  }, [mounted])
 
-  if (loading) {
+  if (!mounted || loading) {
     return <div className="text-gray-400">Loading overview...</div>
   }
 
   return (
+    <ErrorBoundary>
     <div className="space-y-8">
       {/* Key Metrics */}
       <div>
@@ -177,5 +186,6 @@ export default function DashboardOverview() {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   )
 }

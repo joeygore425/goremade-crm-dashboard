@@ -3,12 +3,20 @@
 import { useEffect, useState } from 'react'
 import { supabase, OutreachCampaign } from '@/lib/supabase'
 import { formatDate, formatPercent } from '@/lib/utils'
+import ErrorBoundary from './ErrorBoundary'
 
 export default function OutreachPerformance() {
   const [campaigns, setCampaigns] = useState<OutreachCampaign[]>([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     const fetchCampaigns = async () => {
       try {
         const { data, error } = await supabase
@@ -26,7 +34,7 @@ export default function OutreachPerformance() {
     }
 
     fetchCampaigns()
-  }, [])
+  }, [mounted])
 
   const calculateMetrics = (campaigns: OutreachCampaign[]) => {
     if (campaigns.length === 0) return { avgOpen: 0, avgClick: 0, avgReply: 0 }
@@ -44,11 +52,12 @@ export default function OutreachPerformance() {
 
   const metrics = calculateMetrics(campaigns)
 
-  if (loading) {
+  if (!mounted || loading) {
     return <div className="text-gray-400">Loading campaigns...</div>
   }
 
   return (
+    <ErrorBoundary>
     <div className="space-y-6">
       {/* Overall Metrics */}
       <div className="grid grid-cols-3 gap-4">
@@ -130,5 +139,6 @@ export default function OutreachPerformance() {
         </div>
       )}
     </div>
+    </ErrorBoundary>
   )
 }

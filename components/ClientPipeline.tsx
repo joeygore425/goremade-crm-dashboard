@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 import { supabase, ClientProspect } from '@/lib/supabase'
 import { getStatusColor, daysAgo } from '@/lib/utils'
 import SearchFilter from './SearchFilter'
+import ErrorBoundary from './ErrorBoundary'
 
 export default function ClientPipeline() {
   const [clients, setClients] = useState<ClientProspect[]>([])
   const [filteredClients, setFilteredClients] = useState<ClientProspect[]>([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const [filters, setFilters] = useState({
     status: 'all',
     industry: 'all',
@@ -16,6 +18,12 @@ export default function ClientPipeline() {
   })
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     const fetchClients = async () => {
       try {
         const { data, error } = await supabase
@@ -33,7 +41,7 @@ export default function ClientPipeline() {
     }
 
     fetchClients()
-  }, [])
+  }, [mounted])
 
   useEffect(() => {
     let results = clients
@@ -60,11 +68,12 @@ export default function ClientPipeline() {
   const statuses = Array.from(new Set(clients.map(c => c.status).filter((s): s is string => Boolean(s))))
   const industries = Array.from(new Set(clients.map(c => c.industry).filter((i): i is string => Boolean(i))))
 
-  if (loading) {
+  if (!mounted || loading) {
     return <div className="text-gray-400">Loading clients...</div>
   }
 
   return (
+    <ErrorBoundary>
     <div className="space-y-6">
       {/* Filters */}
       <SearchFilter
@@ -169,5 +178,6 @@ export default function ClientPipeline() {
         </table>
       </div>
     </div>
+    </ErrorBoundary>
   )
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, ApiTokenTracker } from '@/lib/supabase'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import ErrorBoundary from './ErrorBoundary'
 
 interface TokenStats {
   totalTokens: number
@@ -20,8 +21,15 @@ export default function TokenTracker() {
     byService: {},
   })
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     const fetchTokens = async () => {
       try {
         const { data, error } = await supabase
@@ -66,13 +74,14 @@ export default function TokenTracker() {
     }
 
     fetchTokens()
-  }, [])
+  }, [mounted])
 
-  if (loading) {
+  if (!mounted || loading) {
     return <div className="text-gray-400">Loading token usage...</div>
   }
 
   return (
+    <ErrorBoundary>
     <div className="space-y-6">
       {/* Summary Stats */}
       <div className="grid grid-cols-3 gap-4">
@@ -198,5 +207,6 @@ export default function TokenTracker() {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   )
 }

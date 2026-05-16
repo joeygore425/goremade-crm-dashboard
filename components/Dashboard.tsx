@@ -1,13 +1,30 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { supabase } from '@/lib/supabase'
-import DashboardOverview from './DashboardOverview'
-import TrainerPipeline from './TrainerPipeline'
-import ClientPipeline from './ClientPipeline'
-import OutreachPerformance from './OutreachPerformance'
-import TokenTracker from './TokenTracker'
 import Header from './Header'
+import ErrorBoundary from './ErrorBoundary'
+
+const DashboardOverview = dynamic(() => import('./DashboardOverview'), {
+  loading: () => <div className="text-gray-400">Loading overview...</div>,
+})
+
+const TrainerPipeline = dynamic(() => import('./TrainerPipeline'), {
+  loading: () => <div className="text-gray-400">Loading trainers...</div>,
+})
+
+const ClientPipeline = dynamic(() => import('./ClientPipeline'), {
+  loading: () => <div className="text-gray-400">Loading clients...</div>,
+})
+
+const OutreachPerformance = dynamic(() => import('./OutreachPerformance'), {
+  loading: () => <div className="text-gray-400">Loading campaigns...</div>,
+})
+
+const TokenTracker = dynamic(() => import('./TokenTracker'), {
+  loading: () => <div className="text-gray-400">Loading token usage...</div>,
+})
 
 type Tab = 'overview' | 'trainers' | 'clients' | 'campaigns' | 'tokens'
 
@@ -81,11 +98,13 @@ export default function Dashboard() {
 
       {/* Tab Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {activeTab === 'overview' && <DashboardOverview />}
-        {activeTab === 'trainers' && <TrainerPipeline />}
-        {activeTab === 'clients' && <ClientPipeline />}
-        {activeTab === 'campaigns' && <OutreachPerformance />}
-        {activeTab === 'tokens' && <TokenTracker />}
+        <ErrorBoundary>
+          {activeTab === 'overview' && <DashboardOverview />}
+          {activeTab === 'trainers' && <TrainerPipeline />}
+          {activeTab === 'clients' && <ClientPipeline />}
+          {activeTab === 'campaigns' && <OutreachPerformance />}
+          {activeTab === 'tokens' && <TokenTracker />}
+        </ErrorBoundary>
       </div>
     </div>
   )

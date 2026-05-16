@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 import { supabase, TrainerProspect } from '@/lib/supabase'
 import { getStatusColor, daysAgo } from '@/lib/utils'
 import SearchFilter from './SearchFilter'
+import ErrorBoundary from './ErrorBoundary'
 
 export default function TrainerPipeline() {
   const [trainers, setTrainers] = useState<TrainerProspect[]>([])
   const [filteredTrainers, setFilteredTrainers] = useState<TrainerProspect[]>([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const [filters, setFilters] = useState({
     status: 'all',
     state: 'all',
@@ -17,6 +19,12 @@ export default function TrainerPipeline() {
   })
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     const fetchTrainers = async () => {
       try {
         const { data, error } = await supabase
@@ -34,7 +42,7 @@ export default function TrainerPipeline() {
     }
 
     fetchTrainers()
-  }, [])
+  }, [mounted])
 
   useEffect(() => {
     let results = trainers
@@ -64,11 +72,12 @@ export default function TrainerPipeline() {
   const states = Array.from(new Set(trainers.map(t => t.state).filter((s): s is string => Boolean(s))))
   const specialties = Array.from(new Set(trainers.map(t => t.specialty).filter((s): s is string => Boolean(s))))
 
-  if (loading) {
+  if (!mounted || loading) {
     return <div className="text-gray-400">Loading trainers...</div>
   }
 
   return (
+    <ErrorBoundary>
     <div className="space-y-6">
       {/* Filters */}
       <SearchFilter
@@ -176,5 +185,6 @@ export default function TrainerPipeline() {
         </table>
       </div>
     </div>
+    </ErrorBoundary>
   )
 }
