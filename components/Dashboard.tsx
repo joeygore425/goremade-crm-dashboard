@@ -1,60 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import dynamic from 'next/dynamic'
-import { supabase } from '@/lib/supabase'
-import Header from './Header'
-import ErrorBoundary from './ErrorBoundary'
-
-const DashboardOverview = dynamic(() => import('./DashboardOverview'), {
-  loading: () => <div className="text-gray-400">Loading overview...</div>,
-})
-
-const TrainerPipeline = dynamic(() => import('./TrainerPipeline'), {
-  loading: () => <div className="text-gray-400">Loading trainers...</div>,
-})
-
-const ClientPipeline = dynamic(() => import('./ClientPipeline'), {
-  loading: () => <div className="text-gray-400">Loading clients...</div>,
-})
-
-const OutreachPerformance = dynamic(() => import('./OutreachPerformance'), {
-  loading: () => <div className="text-gray-400">Loading campaigns...</div>,
-})
-
-const TokenTracker = dynamic(() => import('./TokenTracker'), {
-  loading: () => <div className="text-gray-400">Loading token usage...</div>,
-})
+import DashboardOverview from './DashboardOverview'
+import TrainerPipeline from './TrainerPipeline'
+import ClientPipeline from './ClientPipeline'
+import OutreachPerformance from './OutreachPerformance'
+import TokenTracker from './TokenTracker'
 
 type Tab = 'overview' | 'trainers' | 'clients' | 'campaigns' | 'tokens'
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
-  const [isLoading, setIsLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // Check Supabase connection
-    const checkConnection = async () => {
-      try {
-        const { error } = await supabase
-          .from('trainer_prospects')
-          .select('count')
-          .limit(1)
-        
-        if (!error) {
-          console.log('✓ Supabase connected')
-        }
-      } catch (err) {
-        console.error('Supabase connection error:', err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkConnection()
+    setMounted(true)
   }, [])
 
-  if (isLoading) {
+  if (!mounted) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -67,7 +30,11 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-900">
-      <Header />
+      {/* Header */}
+      <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-slate-700 px-6 py-8">
+        <h1 className="text-3xl font-bold text-white">GoreMade Fitness — Trainer Acquisition</h1>
+        <p className="text-gray-400 mt-2">Real-time pipeline tracking and campaign metrics</p>
+      </div>
       
       {/* Tab Navigation */}
       <div className="border-b border-slate-700 sticky top-0 z-10 bg-slate-900/95 backdrop-blur">
@@ -98,13 +65,11 @@ export default function Dashboard() {
 
       {/* Tab Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <ErrorBoundary>
-          {activeTab === 'overview' && <DashboardOverview />}
-          {activeTab === 'trainers' && <TrainerPipeline />}
-          {activeTab === 'clients' && <ClientPipeline />}
-          {activeTab === 'campaigns' && <OutreachPerformance />}
-          {activeTab === 'tokens' && <TokenTracker />}
-        </ErrorBoundary>
+        {activeTab === 'overview' && <DashboardOverview />}
+        {activeTab === 'trainers' && <TrainerPipeline />}
+        {activeTab === 'clients' && <ClientPipeline />}
+        {activeTab === 'campaigns' && <OutreachPerformance />}
+        {activeTab === 'tokens' && <TokenTracker />}
       </div>
     </div>
   )
