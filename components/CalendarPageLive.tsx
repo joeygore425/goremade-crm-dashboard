@@ -3,197 +3,186 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
+// Direct Supabase connection
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  'https://ulrgyupbhkmuzrcpzaov.supabase.co',
+  'sb_publishable_RdVPN_xVcquZFhuXlZmKvg_KgRBSHkX'
 );
 
 interface ScheduledEvent {
   id: string;
   name: string;
-  type: 'cron_job' | 'campaign' | 'email_send' | 'reminder';
+  type: string;
   scheduled_time: string;
-  timezone: string;
+  timezone?: string;
   frequency?: string;
   cron_expression?: string;
   status: string;
+  created_at?: string;
 }
-
-const TIMEZONES = [
-  { label: 'Eastern', value: 'America/New_York' },
-  { label: 'Central', value: 'America/Chicago' },
-  { label: 'Mountain', value: 'America/Denver' },
-  { label: 'Pacific', value: 'America/Los_Angeles' },
-];
 
 export default function CalendarPageLive() {
   const [events, setEvents] = useState<ScheduledEvent[]>([]);
-  const [selectedTimezone, setSelectedTimezone] = useState('America/New_York');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [timezone, setTimezone] = useState('America/New_York');
 
   useEffect(() => {
     fetchEvents();
-    const sub = supabase
-      .channel('events')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'scheduled_events' }, () => fetchEvents())
-      .subscribe();
-    return () => { sub.unsubscribe(); };
+    const interval = setInterval(fetchEvents, 5000); // Refresh every 5 seconds
+    return () => clearInterval(interval);
   }, []);
 
   const fetchEvents = async () => {
-    const { data } = await supabase
-      .from('scheduled_events')
-      .select('*')
-      .order('scheduled_time', { ascending: true });
-    setEvents(data || []);
-    setLoading(false);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('scheduled_events')
+        .select('*')
+        .order('scheduled_time', { ascending: true });
+
+      if (fetchError) {
+        console.error('Supabase error:', fetchError);
+        setError(fetchError.message);
+      } else {
+        console.log('Loaded events:', data?.length);
+        setEvents(data || []);
+        setError(null);
+      }
+      setLoading(false);
+    } catch (err: any) {
+      console.error('Fetch error:', err);
+      setError(err.message);
+      setLoading(false);
+    }
   };
 
-  const getTypeColor = (type: string) => {
+  const getTypeIcon = (type: string) => {
     switch (type) {
       case 'cron_job':
-        return 'bg-blue-500/10 border-blue-500/30 text-blue-400';
-      case 'campaign':
-        return 'bg-purple-500/10 border-purple-500/30 text-purple-400';
+        return '🔄';
       case 'email_send':
-        return 'bg-green-500/10 border-green-500/30 text-green-400';
-      case 'reminder':
-        return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400';
+        return '📧';
+      case 'campaign':
+        return '📢';
+      case 'follow_up':
+        return '↩️';
       default:
-        return 'bg-gray-500/10 border-gray-500/30 text-gray-400';
+        return '📋';
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'running':
-        return <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>;
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
       case 'scheduled':
-        return <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>;
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'completed':
-        return <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>;
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      case 'failed':
+        return 'bg-red-500/20 text-red-400 border-red-500/30';
       default:
-        return <span className="inline-block w-2 h-2 bg-gray-500 rounded-full mr-2"></span>;
+        return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
     }
   };
 
-  const formatTime = (isoTime: string) => {
+  const formatDateTime = (dateTime: string) => {
     try {
-      const date = new Date(isoTime);
+      const date = new Date(dateTime);
       return date.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: selectedTimezone,
+        hour12: true,
+        timeZone: timezone
       });
     } catch {
-      return isoTime;
+      return dateTime;
     }
   };
 
-  if (loading) return <div className="text-gray-400">Loading calendar...</div>;
+  if (loading) {
+    return <div className="text-center py-8">Loading calendar...</div>;
+  }
 
-  // Group events by type
-  const cronJobs = events.filter(e => e.type === 'cron_job');
-  const campaigns = events.filter(e => e.type === 'campaign');
-  const emailSends = events.filter(e => e.type === 'email_send');
+  if (error) {
+    return <div className="text-red-500 p-4">Error loading calendar: {error}</div>;
+  }
+
+  if (events.length === 0) {
+    return <div className="text-gray-400 p-4">No scheduled events found</div>;
+  }
+
+  // Group events by date
+  const eventsByDate: { [key: string]: ScheduledEvent[] } = {};
+  events.forEach((event) => {
+    const date = new Date(event.scheduled_time).toLocaleDateString();
+    if (!eventsByDate[date]) {
+      eventsByDate[date] = [];
+    }
+    eventsByDate[date].push(event);
+  });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Timezone Selector */}
-      <div className="flex items-center gap-4 bg-gray-900/50 border border-gray-800 rounded-lg p-4">
-        <label className="text-gray-400">Timezone:</label>
+      <div className="flex items-center gap-4">
+        <label className="text-sm font-medium text-gray-300">Timezone:</label>
         <select
-          value={selectedTimezone}
-          onChange={(e) => setSelectedTimezone(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded px-4 py-2 text-white"
+          value={timezone}
+          onChange={(e) => setTimezone(e.target.value)}
+          className="px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white text-sm"
         >
-          {TIMEZONES.map(tz => (
-            <option key={tz.value} value={tz.value}>{tz.label} ({tz.value.split('/')[1]})</option>
-          ))}
+          <option value="America/New_York">Eastern Time</option>
+          <option value="America/Chicago">Central Time</option>
+          <option value="America/Denver">Mountain Time</option>
+          <option value="America/Los_Angeles">Pacific Time</option>
+          <option value="UTC">UTC</option>
         </select>
       </div>
 
-      {/* Cron Jobs */}
-      {cronJobs.length > 0 && (
-        <section>
-          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-            <span className="text-blue-400">⚙️</span> Running Tasks (Cron Jobs)
-          </h2>
-          <div className="space-y-3">
-            {cronJobs.map(event => (
-              <div key={event.id} className={`border rounded-lg p-4 ${getTypeColor(event.type)}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {getStatusBadge(event.status)}
-                    <div>
-                      <h3 className="font-semibold">{event.name}</h3>
-                      {event.frequency && <p className="text-xs opacity-75">Runs: {event.frequency}</p>}
-                      {event.cron_expression && <p className="text-xs opacity-75 font-mono">{event.cron_expression}</p>}
+      {/* Events List */}
+      <div className="space-y-6">
+        {Object.entries(eventsByDate).map(([date, dateEvents]) => (
+          <div key={date}>
+            <h3 className="text-lg font-bold text-white mb-3">{date}</h3>
+            <div className="space-y-2">
+              {dateEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className="bg-slate-800 rounded-lg border border-slate-700 p-4 hover:border-slate-600 transition"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="text-2xl">{getTypeIcon(event.type)}</div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-white">{event.name}</h4>
+                        <div className="flex items-center gap-3 mt-2 text-sm text-gray-400">
+                          <span>🕐 {formatDateTime(event.scheduled_time)}</span>
+                          {event.frequency && <span>🔄 {event.frequency}</span>}
+                        </div>
+                        {event.cron_expression && (
+                          <div className="text-xs text-gray-500 mt-1 font-mono">
+                            cron: {event.cron_expression}
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    <span className={`px-3 py-1 rounded text-xs font-semibold border whitespace-nowrap ${getStatusColor(event.status)}`}>
+                      {event.status}
+                    </span>
                   </div>
-                  <span className="text-xs px-2 py-1 rounded bg-black/30">{event.status}</span>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </section>
-      )}
+        ))}
+      </div>
 
-      {/* Campaigns */}
-      {campaigns.length > 0 && (
-        <section>
-          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-            <span className="text-purple-400">🚀</span> Campaigns
-          </h2>
-          <div className="space-y-3">
-            {campaigns.map(event => (
-              <div key={event.id} className={`border rounded-lg p-4 ${getTypeColor(event.type)}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {getStatusBadge(event.status)}
-                    <div>
-                      <h3 className="font-semibold">{event.name}</h3>
-                      <p className="text-xs opacity-75">{formatTime(event.scheduled_time)}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs px-2 py-1 rounded bg-black/30">{event.status}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Email Sends */}
-      {emailSends.length > 0 && (
-        <section>
-          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-            <span className="text-green-400">📧</span> Scheduled Sends
-          </h2>
-          <div className="space-y-3">
-            {emailSends.map(event => (
-              <div key={event.id} className={`border rounded-lg p-4 ${getTypeColor(event.type)}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {getStatusBadge(event.status)}
-                    <div>
-                      <h3 className="font-semibold">{event.name}</h3>
-                      <p className="text-xs opacity-75">{formatTime(event.scheduled_time)}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs px-2 py-1 rounded bg-black/30">{event.status}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {events.length === 0 && (
-        <p className="text-gray-500">No scheduled events</p>
-      )}
+      <div className="text-sm text-gray-400 text-center">
+        Total: {events.length} scheduled events
+      </div>
     </div>
   );
 }
