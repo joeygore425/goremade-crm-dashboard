@@ -19,7 +19,8 @@ export default function Sidebar({ collapsed: initialCollapsed = false }: Sidebar
     { label: 'Tasks', path: '/tasks', icon: '✓' },
     { label: 'Campaign', path: '/campaign', icon: '🚀' },
     { label: 'Calendar', path: '/calendar', icon: '📅' },
-    { label: 'Team', path: '/team', icon: '👥' },
+    { label: "Contacts", path: "/contacts", icon: "👤" },
+    { label: "Team", path: "/team", icon: "👥" },
     { label: 'Token Usage', path: '/token-usage', icon: '⚡' },
   ];
 
