@@ -18,6 +18,7 @@ export default function Sidebar({ collapsed: initialCollapsed = false }: Sidebar
     { label: 'Dashboard', path: '/', icon: '📊' },
     { label: 'Tasks', path: '/tasks', icon: '✓' },
     { label: 'Campaign', path: '/campaign', icon: '🚀' },
+    { label: 'Batches', path: '/batches', icon: '📦' },
     { label: 'Calendar', path: '/calendar', icon: '📅' },
     { label: "Contacts", path: "/contacts", icon: "👤" },
     { label: "Team", path: "/team", icon: "👥" },
